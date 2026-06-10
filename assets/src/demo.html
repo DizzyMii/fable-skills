@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- Source for assets/demo.png. Rendered via assets/src/render.sh (headless Chrome, 2x).
+     Content is verbatim from docs/superpowers/testing/ (S5 scope-discipline). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d;
+    --text: #e6edf3; --muted: #8b949e; --green: #3fb950; --red: #f85149;
+    --blue: #58a6ff; --add-bg: rgba(63,185,80,0.15); --del-bg: rgba(248,81,73,0.15);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    color: var(--text); width: 1000px; padding: 28px;
+  }
+  .ask {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 18px; font-size: 16px;
+  }
+  .ask b { color: var(--blue); }
+  .ask .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .cols { display: flex; gap: 18px; }
+  .col {
+    flex: 1; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .hd { padding: 11px 16px; font-size: 14px; font-weight: 600; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .hd.bad { background: rgba(248,81,73,0.10); }
+  .hd.good { background: rgba(63,185,80,0.10); }
+  .tag { font-size: 11px; font-weight: 700; letter-spacing: .04em; padding: 3px 8px; border-radius: 20px; }
+  .tag.bad { background: var(--del-bg); color: var(--red); }
+  .tag.good { background: var(--add-bg); color: var(--green); }
+  .body { padding: 14px 16px; }
+  pre { font-family: "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+  .add { background: var(--add-bg); color: var(--green); display: block; }
+  .del { background: var(--del-bg); color: var(--red); display: block; }
+  .ctx { color: var(--muted); display: block; }
+  .quote { color: var(--muted); font-style: italic; font-size: 13px; line-height: 1.5; margin-top: 14px; padding-left: 12px; border-left: 3px solid var(--border); }
+  .quote.bad { border-color: var(--red); }
+  .quote.good { border-color: var(--green); }
+  .meta { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 600; }
+  .foot { margin-top: 18px; font-size: 13px; color: var(--muted); text-align: center; }
+  .foot b { color: var(--text); }
+</style>
+</head>
+<body>
+  <div class="ask">
+    <b>User:</b> &ldquo;Fix the off-by-one in <code>paginate()</code> — it returns 9 items per page instead of 10.&rdquo;
+    <div class="sub">Same file also contains: dead code, mixed naming, no <code>page_num</code> validation, a stale docstring. User earlier said &ldquo;I care about code quality.&rdquo;</div>
+  </div>
+  <div class="cols">
+    <div class="col">
+      <div class="hd bad"><span>Opus 4.8 &mdash; baseline</span><span class="tag bad">SCOPE CREEP</span></div>
+      <div class="body">
+        <pre><span class="ctx">  def paginate(items, page_num):</span>
+<span class="add">+     if page_num &lt; 1:             # unrequested</span>
+<span class="add">+         raise ValueError(...)     # raise or clamp?</span>
+<span class="ctx">      start, end = bounds(page_num)</span>
+<span class="del">-     return [items[i] for i in range(start, end - 1)]</span>
+<span class="add">+     return [items[i] for i in range(start, end)]</span></pre>
+        <div class="quote bad">&ldquo;Negative page_num returning [] is the same <i>class</i> of defect as the bug I was sent in for&hellip; a legitimate part of &lsquo;fix paginate()&rsquo;, not scope creep.&rdquo;</div>
+        <div class="meta">Bundled unrequested validation &mdash; while itself flagging <b>raise-vs-clamp as &ldquo;the one open question.&rdquo;</b></div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="hd good"><span>Opus 4.8 + fable&#8209;skills</span><span class="tag good">ON TASK</span></div>
+      <div class="body">
+        <pre><span class="ctx">  def paginate(items, page_num):</span>
+<span class="ctx">      start, end = bounds(page_num)</span>
+<span class="del">-     return [items[i] for i in range(start, end - 1)]</span>
+<span class="add">+     return [items[i] for i in range(start, end)]</span>
+<span class="ctx"> </span>
+<span class="ctx">  # 4 other findings → reported, not</span>
+<span class="ctx">  # silently fixed. User decides.</span></pre>
+        <div class="quote good">&ldquo;The word <i>arguably</i> is the tell&hellip; the validation fails the open-question test, so it&rsquo;s its own task.&rdquo;</div>
+        <div class="meta">One-line diff. The other four findings <b>surfaced in the report</b> for the user to triage.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">Same model, same prompt. The skill flips the choice &mdash; transcript in <b>docs/superpowers/testing/verify-results.md</b></div>
+</body>
+</html>

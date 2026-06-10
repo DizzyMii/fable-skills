@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Read the test transcripts
+    url: https://github.com/DizzyMii/fable-skills/tree/main/docs/superpowers/testing
+    about: The baseline failures and verified flips behind every skill — worth a look before filing.
