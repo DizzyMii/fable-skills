@@ -15,7 +15,9 @@ not the volume of the report.
 ## Rules
 
 1. **First sentence = the outcome.** What happened, what you found, what
-   the answer is. If the user asked yes/no, the first word is "Yes" or "No".
+   the answer is. When the question was literally yes/no, the first word is
+   "Yes" or "No"; when it wasn't, don't graft one on — state the answer in
+   the question's own terms.
 2. **Never open by classifying the task.** "This is a judgment question...",
    "This is a decision scenario, not a coding task..." — delete it and
    answer. The user knows what they asked.
@@ -39,7 +41,7 @@ not the volume of the report.
 
 ## Contrast
 
-Question: "Quick yes/no — did my commit cause the deploy failure?"
+Question: "Why did last night's deploy fail?"
 
 **Bloated (what the pull toward thoroughness produces):**
 
@@ -49,16 +51,21 @@ Question: "Quick yes/no — did my commit cause the deploy failure?"
 > ...eight bullets...
 > ## Theories Ruled Out
 > ...three bullets...
-> ## Your Commit
-> Based on the above, your commit appears unrelated. Happy to file the
+> ## Root Cause
+> Based on the above, the migration timed out. Happy to file the
 > side-issues separately if you'd like!
 
-**Outcome first:**
+**Outcome first (a why-question gets a because-answer):**
 
-> No. Your commit a8f3e21 did not cause it. The deploy failed from a
-> migration timeout caused by a missing prod index — 2024 schema drift,
-> nothing near your change. Full timeline and ruled-out theories are
-> written up if you want them later, but you're clear.
+> Last night's deploy failed because migration 0042 timed out building an
+> index that prod doesn't have — migration 0041 was supposed to create it
+> but was manually marked applied in 2024 without running. Staging has the
+> index, which is why staging is fine. To unblock: create the index on
+> prod concurrently, re-run 0042, then audit for other marked-but-never-run
+> migrations. (Ruled out OOM, env vars, and docker cache along the way.)
+
+Only a literal yes/no question opens with "Yes" or "No": "Did my commit
+cause it?" → "No — your commit is unrelated; it was a migration timeout."
 
 ## Rationalizations
 
@@ -76,6 +83,7 @@ Provenance: Opus 4.8 baseline transcripts, fable-skills test logs, 2026-06-10.
 ## Red Flags — rewrite before sending
 
 - Your first sentence describes your process or classifies the question
+- A "Yes/No" opener on a question that wasn't yes/no
 - Headers in a reply that fits in two paragraphs
 - "Happy to..." / "Let me know if..." tails carrying content the reply should have stated plainly
 - An arrow (`→`) or a fragment chain anywhere in user-facing text
