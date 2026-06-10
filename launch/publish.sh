@@ -63,7 +63,10 @@ mk_issue() {
   local title="$1"; shift
   local body="$1"; shift
   if issue_exists "$title"; then echo "   - skip (exists): $title"; return; fi
-  gh issue create --title "$title" --body "$body" --label "$@" >/dev/null
+  local label_args=()
+  local l
+  for l in "$@"; do label_args+=(--label "$l"); done
+  gh issue create --title "$title" --body "$body" "${label_args[@]}" >/dev/null
   echo "   - created: $title"
 }
 
