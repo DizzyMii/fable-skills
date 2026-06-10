@@ -1,0 +1,9 @@
+# Normalize text to LF in the repository. Shell scripts MUST stay LF so they run
+# on macOS/Linux after a clone from any platform (CRLF breaks the shebang).
+* text=auto eol=lf
+
+# PowerShell is native CRLF on Windows.
+*.ps1 text eol=crlf
+
+# Binary assets — never touch line endings.
+*.png binary
