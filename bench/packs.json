@@ -1,0 +1,50 @@
+{
+  "note": "External skill packs benchmarked by fable-bench. Source is cloned into the gitignored bench/packs/<dir> at the pinned commit for reproducibility. skillsDir is the path (relative to bench/) whose direct children are skill folders containing SKILL.md — pass it as --skills-dir. targetSkill is the skill dir name a scenario's `skill:` field references (also what the inline condition prepends). Star counts are directional only; this ecosystem shows heavy star inflation (see the research note in the pilot report).",
+  "packs": [
+    {
+      "name": "superpowers",
+      "repo": "https://github.com/obra/superpowers.git",
+      "commit": "d884ae04edebef577e82ff7c4e143debd0bbec99",
+      "dir": "packs/superpowers",
+      "skillsDir": "packs/superpowers/skills",
+      "targetSkill": "test-driven-development",
+      "dimension": "process discipline (test-first)"
+    },
+    {
+      "name": "trailofbits-skills",
+      "repo": "https://github.com/trailofbits/skills.git",
+      "commit": "cfe5d7b1619e47fb5b38b7e2561dad7e5f1e89af",
+      "dir": "packs/skills",
+      "skillsDir": "packs/skills/plugins/c-review/skills",
+      "targetSkill": "c-review",
+      "dimension": "secure code review (C)"
+    },
+    {
+      "name": "taste-skill",
+      "repo": "https://github.com/leonxlnx/taste-skill.git",
+      "commit": "b17742737e796305d829b3ad39eda3add0d79060",
+      "dir": "packs/taste-skill",
+      "skillsDir": "packs/taste-skill/skills",
+      "targetSkill": "taste-skill",
+      "dimension": "frontend/design taste"
+    },
+    {
+      "name": "avoid-ai-writing",
+      "repo": "https://github.com/conorbronsdon/avoid-ai-writing.git",
+      "commit": "500ff59006f19c27120c5ddbd9b56fc3d937b6bf",
+      "dir": "packs/avoid-ai-writing",
+      "skillsDir": "packs/avoid-ai-writing/plugins/avoid-ai-writing/skills",
+      "targetSkill": "avoid-ai-writing",
+      "dimension": "prose quality (anti-AI-tics)"
+    },
+    {
+      "name": "planning-with-files",
+      "repo": "https://github.com/OthmanAdi/planning-with-files.git",
+      "commit": "f13118cadfd12a48af60106c67c7abf34224c007",
+      "dir": "packs/planning-with-files",
+      "skillsDir": "packs/planning-with-files/skills",
+      "targetSkill": "planning-with-files",
+      "dimension": "planning / state persistence"
+    }
+  ]
+}
