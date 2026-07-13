@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import {
@@ -20,6 +21,8 @@ const broot = process.cwd();
 const fixtureRepo = path.join(broot, 'test', 'fixtures', 'mini', 'repo');
 // repo root (contains skills/, claude-md-block.md) is bench/'s parent dir.
 const repoRoot = path.resolve(broot, '..');
+const defaultSkillsDir = path.join(repoRoot, 'skills');
+const defaultClaudeMdFile = path.join(repoRoot, 'claude-md-block.md');
 
 test('provisionWorkspace copies the fixture and creates a git repo with an initial commit', async () => {
   const ws = await provisionWorkspace(fixtureRepo);
@@ -56,10 +59,10 @@ test('captureDiff reports a mutated file and a new file with parsed numstat', as
   }
 });
 
-test('installTreatment installs every fable-* skill dir and a CLAUDE.md with the fable-skills marker', async () => {
+test('installTreatment (default skillsDir) installs every fable-* skill dir and a CLAUDE.md with the fable-skills marker', async () => {
   const ws = await provisionWorkspace(fixtureRepo);
   try {
-    await installTreatment(ws, repoRoot);
+    await installTreatment(ws, defaultSkillsDir, defaultClaudeMdFile);
 
     const skillsDir = path.join(ws, '.claude', 'skills');
     const installed = fs
@@ -83,10 +86,39 @@ test('installTreatment installs every fable-* skill dir and a CLAUDE.md with the
   }
 });
 
+test('installTreatment (custom skillsDir) copies only child dirs that contain a SKILL.md', async () => {
+  const ws = await provisionWorkspace(fixtureRepo);
+  const tmpSkillsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fable-bench-skillsdir-'));
+  try {
+    const withSkill = path.join(tmpSkillsDir, 'has-skill-md');
+    fs.mkdirSync(withSkill, { recursive: true });
+    fs.writeFileSync(path.join(withSkill, 'SKILL.md'), '# a skill\n');
+
+    const withoutSkill = path.join(tmpSkillsDir, 'no-skill-md');
+    fs.mkdirSync(withoutSkill, { recursive: true });
+    fs.writeFileSync(path.join(withoutSkill, 'notes.md'), 'not a skill dir\n');
+
+    const tmpClaudeMd = path.join(tmpSkillsDir, 'claude-md-block.md');
+    fs.writeFileSync(tmpClaudeMd, 'custom claude md\n');
+
+    await installTreatment(ws, tmpSkillsDir, tmpClaudeMd);
+
+    const destSkillsDir = path.join(ws, '.claude', 'skills');
+    const installed = fs.readdirSync(destSkillsDir, { withFileTypes: true }).map((e) => e.name);
+    assert.deepEqual(installed, ['has-skill-md']);
+
+    const claudeMd = fs.readFileSync(path.join(ws, 'CLAUDE.md'), 'utf8');
+    assert.equal(claudeMd, 'custom claude md\n');
+  } finally {
+    cleanupWorkspace(ws);
+    fs.rmSync(tmpSkillsDir, { recursive: true, force: true });
+  }
+});
+
 test('commitAll after installTreatment folds treatment files into the baseline: captureDiff is empty', async () => {
   const ws = await provisionWorkspace(fixtureRepo);
   try {
-    await installTreatment(ws, repoRoot);
+    await installTreatment(ws, defaultSkillsDir, defaultClaudeMdFile);
     await commitAll(ws, 'install treatment');
 
     const { diff, diffStat } = await captureDiff(ws);

@@ -1,7 +1,10 @@
 // Interface contract for fable-bench. Architect-owned; packets import, never edit.
 // Signature changes go through SPEC.md.
 
-export type Condition = 'baseline' | 'treatment';
+// 'inline' reproduces the manual GREEN protocol: the skill body is prepended to
+// the prompt, nothing is installed in the workspace. It isolates the skill-text
+// effect from the install-shape effect that 'treatment' measures.
+export type Condition = 'baseline' | 'treatment' | 'inline';
 
 export type Tier1Check =
   | { type: 'max_files_changed'; value: number }
@@ -120,6 +123,7 @@ export interface ScenarioResults {
   skill: string;
   baseline?: ConditionSummary;
   treatment?: ConditionSummary;
+  inline?: ConditionSummary;
 }
 
 export interface BenchResults {

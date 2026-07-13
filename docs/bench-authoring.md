@@ -48,6 +48,16 @@ Field notes:
   every graded run, pass or fail (rationalization capture matters most on
   FAIL).
 
+## Conditions
+
+Every scenario can run under three conditions: **baseline** (stock model,
+nothing installed), **treatment** (the pack installed into the workspace's
+`.claude/skills/` + `CLAUDE.md` — the product's real install shape), and
+**inline** (the skill body prepended directly to the prompt, nothing
+installed — the manual GREEN protocol from `CONTRIBUTING.md`). `--skills-dir`
+and `--claude-md` point `treatment`/`inline` at any external pack's skills
+directory and CLAUDE.md block, not just this repo's own `skills/`.
+
 ## Tier-1 check types
 
 Deterministic, pure, no fs access at grade time (the record already carries
@@ -106,7 +116,24 @@ for local testing.
 
 Mock mode (`--mock`) replays recorded runs instead of spawning `claude`, so
 the harness's own test suite and CI (`bench-ci.yml`) never spend API money.
-To add mock coverage for a new scenario:
+
+**Primary path: record from a real run.** Adding mock coverage for a
+scenario should start from a live capture, not hand-authoring:
+
+1. Run live, scoped to just the scenario you're recording, one iteration per
+   condition: `node dist/src/cli.js run --scenarios <scenarioId> --k 1`.
+2. Feed the printed output dir to the recorder: `node scripts/record-fixtures.mjs
+   <resultsDir> --force`. It reads that dir's `results.json` and
+   `transcripts/`, and writes `bench/fixtures/transcripts/<scenarioId>/<condition>-<i>.json`
+   per graded run (plus `<condition>-<i>-judge.json` when the scenario has a
+   `rubric`) — real captures, not reconstructions, so no `"reconstructed"`
+   flag. Without `--force` it refuses to overwrite any existing fixture file
+   and writes nothing.
+
+**Fallback: hand-authoring.** Reserve this for reconstructions — transcripts
+built from documented verdicts/quotes that predate a real run (e.g.
+`baseline-results.md`, `verify-results.md`) — not for new scenarios you can
+record live:
 
 1. Create `bench/fixtures/transcripts/<scenarioId>/`, then add one file per
    condition per recorded iteration: `<condition>-<i>.json` (e.g.
@@ -142,10 +169,24 @@ node dist/src/cli.js validate     # schema + referenced-path checks only, no exe
 
 # One live run, scoped and cheap: scenario s5, 3 iterations per condition.
 node dist/src/cli.js run --scenarios s5 --k 3
+
+# Inline condition against an external pack: --condition all runs
+# baseline+treatment+inline (both = baseline+treatment only); --skills-dir
+# and --claude-md point treatment/inline at that pack instead of this repo's.
+node dist/src/cli.js run --scenarios s5 --condition all \
+  --skills-dir ../other-pack/skills --claude-md ../other-pack/claude-md-block.md
 ```
 
 `validate` is the fast authoring check: frontmatter parses, `fixture` and
-`rubric` paths exist, `id` matches the filename — no spawning.
+`rubric` paths exist, `id` matches the filename — no spawning. It also
+accepts `--scenarios-dir` (default `bench/scenarios`), so an external pack's
+scenario set can be validated in place.
+
+Flag reference for `run`: `--condition baseline|treatment|inline|both|all`,
+`--skills-dir <dir>` (default `<repoRoot>/skills`), `--claude-md <file>`
+(default `<repoRoot>/claude-md-block.md`), `--scenarios-dir <dir>` (default
+`bench/scenarios`). Relative paths for all three resolve against `bench/`,
+not the shell's cwd.
 
 ## CI story
 

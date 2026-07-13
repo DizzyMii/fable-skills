@@ -70,6 +70,11 @@ class StubExecutor implements Executor {
   }
 }
 
+/** Mirrors judge.ts's private whitespace-collapse, used only to state test preconditions. */
+function collapseWhitespaceForTest(s: string): string {
+  return s.replace(/\s+/g, ' ');
+}
+
 function makeBenchRoot(rubricContent: string): { benchRoot: string; rubricRelPath: string } {
   const benchRoot = mkdtempSync(path.join(tmpdir(), 'fable-bench-judge-test-'));
   mkdirSync(path.join(benchRoot, 'rubrics'), { recursive: true });
@@ -219,6 +224,77 @@ test('judgeRun FAIL with quote matching only after whitespace collapse: quoteVer
 
   const result = await judgeRun(executor, scenario, record, benchRoot);
   assert.equal(result.quoteVerified, true);
+});
+
+test('judgeRun FAIL with quote matching only after stripping backticks: quoteVerified true', async () => {
+  // The live case: judge copied an otherwise verbatim rationalization but dropped the
+  // markdown backticks around an identifier.
+  const { benchRoot } = makeBenchRoot('rubric');
+  const scenario = makeScenario();
+  const quote = 'but PAGE_SIZE = 10.';
+  const transcriptText = 'the tests still pass but `PAGE_SIZE = 10`. that seemed fine to ship.';
+  const record = makeRecord({ transcriptText });
+  assert.ok(!transcriptText.includes(quote), 'precondition: exact substring must NOT match');
+  assert.ok(
+    !collapseWhitespaceForTest(transcriptText).includes(collapseWhitespaceForTest(quote)),
+    'precondition: whitespace-collapse alone must NOT match (backticks remain)',
+  );
+
+  const executor = new StubExecutor([
+    {
+      finalText: JSON.stringify({ verdict: 'FAIL', reasoning: 'rationalized', rationalization_quote: quote }),
+      costUsd: 0.01,
+    },
+  ]);
+
+  const result = await judgeRun(executor, scenario, record, benchRoot);
+  assert.equal(result.verdict, 'FAIL');
+  assert.equal(result.quoteVerified, true);
+});
+
+test('judgeRun FAIL with quote matching only after stripping asterisk emphasis: quoteVerified true', async () => {
+  const { benchRoot } = makeBenchRoot('rubric');
+  const scenario = makeScenario();
+  const quote = 'must not bundle';
+  const transcriptText = 'the rubric says we **must not** bundle native deps into the package.';
+  const record = makeRecord({ transcriptText });
+  assert.ok(!transcriptText.includes(quote), 'precondition: exact substring must NOT match');
+  assert.ok(
+    !collapseWhitespaceForTest(transcriptText).includes(collapseWhitespaceForTest(quote)),
+    'precondition: whitespace-collapse alone must NOT match (asterisks remain)',
+  );
+
+  const executor = new StubExecutor([
+    {
+      finalText: JSON.stringify({ verdict: 'FAIL', reasoning: 'rationalized', rationalization_quote: quote }),
+      costUsd: 0.01,
+    },
+  ]);
+
+  const result = await judgeRun(executor, scenario, record, benchRoot);
+  assert.equal(result.verdict, 'FAIL');
+  assert.equal(result.quoteVerified, true);
+});
+
+test('judgeRun FAIL with fabricated quote sharing many words but no formatting-stripped substring match: quoteVerified false', async () => {
+  const { benchRoot } = makeBenchRoot('rubric');
+  const scenario = makeScenario();
+  // Shares nearly every word with the transcript, but "because" -> "although" breaks the
+  // contiguous substring match at every tier, including formatting-stripped.
+  const transcriptText = 'closing note: `PAGE_SIZE = 10` was chosen because it kept memory low.';
+  const quote = 'PAGE_SIZE = 10 was chosen although it kept memory low';
+  const record = makeRecord({ transcriptText });
+
+  const executor = new StubExecutor([
+    {
+      finalText: JSON.stringify({ verdict: 'FAIL', reasoning: 'rationalized', rationalization_quote: quote }),
+      costUsd: 0.01,
+    },
+  ]);
+
+  const result = await judgeRun(executor, scenario, record, benchRoot);
+  assert.equal(result.verdict, 'FAIL');
+  assert.equal(result.quoteVerified, false);
 });
 
 test('judgeRun FAIL with fabricated quote: quoteVerified false', async () => {

@@ -35,15 +35,17 @@ export function aggregate(graded: GradedRun[], scenarios: Scenario[], meta: Aggr
     const runsForScenario = graded.filter((g) => g.run.scenarioId === scenario.id);
     const baselineRuns = runsForScenario.filter((g) => g.run.condition === 'baseline');
     const treatmentRuns = runsForScenario.filter((g) => g.run.condition === 'treatment');
+    const inlineRuns = runsForScenario.filter((g) => g.run.condition === 'inline');
 
     const entry: ScenarioResults = { scenarioId: scenario.id, skill: scenario.skill };
     if (baselineRuns.length > 0) entry.baseline = summarizeCondition(baselineRuns);
     if (treatmentRuns.length > 0) entry.treatment = summarizeCondition(treatmentRuns);
+    if (inlineRuns.length > 0) entry.inline = summarizeCondition(inlineRuns);
     return entry;
   });
 
   const totalCostUsd = scenarioResults.reduce(
-    (sum, s) => sum + (s.baseline?.costUsd ?? 0) + (s.treatment?.costUsd ?? 0),
+    (sum, s) => sum + (s.baseline?.costUsd ?? 0) + (s.treatment?.costUsd ?? 0) + (s.inline?.costUsd ?? 0),
     0
   );
 
@@ -71,12 +73,25 @@ function boolCell(v: boolean | undefined): string {
   return v === undefined ? '—' : v ? 'yes' : 'no';
 }
 
-function renderSummaryRow(s: ScenarioResults): string {
+function renderSummaryRow(s: ScenarioResults, hasInline: boolean): string {
   const baselinePass = passCell(s.baseline);
   const treatmentPass = passCell(s.treatment);
-  const passAtK = `${boolCell(s.baseline?.passAtK)} → ${boolCell(s.treatment?.passAtK)}`;
-  const passHatK = `${boolCell(s.baseline?.passHatK)} → ${boolCell(s.treatment?.passHatK)}`;
+  const passAtKParts = [boolCell(s.baseline?.passAtK), boolCell(s.treatment?.passAtK)];
+  const passHatKParts = [boolCell(s.baseline?.passHatK), boolCell(s.treatment?.passHatK)];
+  if (hasInline) {
+    passAtKParts.push(boolCell(s.inline?.passAtK));
+    passHatKParts.push(boolCell(s.inline?.passHatK));
+  }
+  const passAtK = passAtKParts.join(' → ');
+  const passHatK = passHatKParts.join(' → ');
+  // FLIP stays baseline-vs-treatment: inline is a diagnostic condition, not
+  // part of the ship gate.
   const flip = s.baseline && s.treatment && s.treatment.passRate > s.baseline.passRate ? 'FLIP' : '—';
+
+  if (hasInline) {
+    const inlinePass = passCell(s.inline);
+    return `| ${s.scenarioId} | ${s.skill} | ${baselinePass} | ${treatmentPass} | ${inlinePass} | ${passAtK} | ${passHatK} | ${flip} |`;
+  }
   return `| ${s.scenarioId} | ${s.skill} | ${baselinePass} | ${treatmentPass} | ${passAtK} | ${passHatK} | ${flip} |`;
 }
 
@@ -125,12 +140,21 @@ export function renderReport(results: BenchResults): string {
   lines.push(`- Total cost: $${results.totalCostUsd.toFixed(4)}`);
   lines.push('');
 
+  const hasInline = results.scenarios.some((s) => s.inline !== undefined);
+
   lines.push('## Summary');
   lines.push('');
-  lines.push('| scenario | skill | baseline pass | treatment pass | pass@k (B→T) | pass^k (B→T) | flip |');
-  lines.push('|---|---|---|---|---|---|---|');
+  if (hasInline) {
+    lines.push(
+      '| scenario | skill | baseline pass | treatment pass | inline pass | pass@k (B→T→I) | pass^k (B→T→I) | flip |'
+    );
+    lines.push('|---|---|---|---|---|---|---|---|');
+  } else {
+    lines.push('| scenario | skill | baseline pass | treatment pass | pass@k (B→T) | pass^k (B→T) | flip |');
+    lines.push('|---|---|---|---|---|---|---|');
+  }
   for (const s of results.scenarios) {
-    lines.push(renderSummaryRow(s));
+    lines.push(renderSummaryRow(s, hasInline));
   }
   lines.push('');
 
@@ -149,6 +173,12 @@ export function renderReport(results: BenchResults): string {
       lines.push('**treatment**');
       lines.push('');
       for (const run of s.treatment.runs) lines.push(...renderRun(run));
+    }
+    if (s.inline) {
+      lines.push('');
+      lines.push('**inline**');
+      lines.push('');
+      for (const run of s.inline.runs) lines.push(...renderRun(run));
     }
   }
   lines.push('');

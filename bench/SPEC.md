@@ -211,6 +211,12 @@ go through the architect.
 - D18 bench/ is a self-contained npm package: repo root remains a pure docs/skills repo.
 - D19 types.ts + package.json + tsconfig authored by the architect: interface contract and dependency policy are architecture, not feature code.
 - D20 workflow_dispatch-only GH Action with model+filter inputs: live runs cost money; nothing runs on push. CI-on-push is mock-mode only via `npm test`.
+- D21 Third condition `inline` (skill body prepended to the prompt, no install): reproduces the manual GREEN protocol and isolates skill-text effect from install-shape effect — the v0 acceptance run flipped with zero Skill-tool invocations, so the two must be distinguishable.
+- D22 Pack generalization: `--skills-dir`, `--claude-md`, `--scenarios-dir` CLI flags (defaults preserve v0 behavior); the installer copies any child dir containing a SKILL.md. This also answers D5 — a superpowers-loaded baseline is just superpowers-as-treatment.
+- D23 Quote verification gains a formatting-insensitive tier (strip markdown emphasis/backticks, collapse whitespace) between exact-match and UNVERIFIED: judges drop formatting characters from otherwise verbatim quotes.
+- D24 LiveExecutor quotes shell args on Windows so allowed-tool patterns with spaces/parens (`Bash(git *)`) survive the `shell: true` join.
+- D25 `scripts/record-fixtures.mjs` converts a results dir into mock-fixture layout, so reconstructions get replaced by real captured transcripts and future scenarios record instead of hand-authoring.
+- D26 External packs are cloned into gitignored `bench/packs/` with a checked-in `packs.json` manifest (source URL + commit SHA) for reproducibility; pack scenarios live under `bench/scenarios-packs/<pack>/`.
 
 ## Packet plan
 

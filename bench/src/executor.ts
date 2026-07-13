@@ -27,6 +27,25 @@ export interface LiveExecutorOpts {
   claudeCmd?: string;
 }
 
+/** Bare tokens (model IDs, numbers, comma-joined tool lists) that need no quoting. */
+const SAFE_SHELL_ARG = /^[A-Za-z0-9_.,:=@\/-]+$/;
+
+/**
+ * Quotes a single shell arg for the platform LiveExecutor spawns on with
+ * `shell: true` (SPEC D24). Args matching SAFE_SHELL_ARG are returned
+ * unchanged; everything else (spaces, parens, empty string, etc.) is
+ * quoted using the target shell's convention:
+ *  - win32 (cmd.exe): wrap in double quotes, double embedded double quotes.
+ *  - POSIX (/bin/sh): wrap in single quotes, embedded single quotes become '\''.
+ */
+export function quoteShellArg(arg: string, platform: NodeJS.Platform): string {
+  if (SAFE_SHELL_ARG.test(arg)) return arg;
+  if (platform === 'win32') {
+    return `"${arg.replace(/"/g, '""')}"`;
+  }
+  return `'${arg.replace(/'/g, "'\\''")}'`;
+}
+
 /** Spawns headless `claude` and parses its stream-json stdout. */
 export class LiveExecutor implements Executor {
   private readonly claudeCmd: string;
@@ -55,7 +74,11 @@ export class LiveExecutor implements Executor {
 
     return new Promise<ExecResult>((resolve) => {
       // shell:true is required on Windows for the npm shim to resolve `claude`.
-      const child = spawn(this.claudeCmd, args, { cwd: req.cwd, shell: true });
+      // Args are joined into a shell command line under shell:true, so any arg
+      // containing shell-meaningful characters (spaces, parens, ...) must be
+      // quoted for the target platform's shell (SPEC D24).
+      const quotedArgs = args.map((a) => quoteShellArg(a, process.platform));
+      const child = spawn(this.claudeCmd, quotedArgs, { cwd: req.cwd, shell: true });
 
       const events: unknown[] = [];
       let stdoutBuf = '';

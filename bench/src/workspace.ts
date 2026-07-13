@@ -50,25 +50,33 @@ export async function commitAll(workspaceDir: string, message: string): Promise<
 }
 
 /**
- * Installs the product's real install shape into the workspace: every
- * repoRoot/skills/fable-* dir copied to workspaceDir/.claude/skills/<name>/,
- * plus workspaceDir/CLAUDE.md written from repoRoot/claude-md-block.md.
+ * Installs a pack's real install shape into the workspace: every child
+ * directory of skillsDir that contains a SKILL.md is copied to
+ * workspaceDir/.claude/skills/<name>/, plus workspaceDir/CLAUDE.md written
+ * from claudeMdFile. Generalized over any pack, not just this repo's own
+ * fable-* skills — the default skillsDir (repoRoot/skills) contains only the
+ * six fable-* dirs, all with SKILL.md, so default behavior is unchanged.
  */
-export async function installTreatment(workspaceDir: string, repoRoot: string): Promise<void> {
-  const skillsSrcDir = path.join(repoRoot, 'skills');
-  const entries = fs.readdirSync(skillsSrcDir, { withFileTypes: true });
-  const skillDirs = entries.filter((e) => e.isDirectory() && e.name.startsWith('fable-'));
+export async function installTreatment(
+  workspaceDir: string,
+  skillsDir: string,
+  claudeMdFile: string
+): Promise<void> {
+  const entries = fs.readdirSync(skillsDir, { withFileTypes: true });
+  const skillDirs = entries.filter(
+    (e) => e.isDirectory() && fs.existsSync(path.join(skillsDir, e.name, 'SKILL.md'))
+  );
 
   const destSkillsDir = path.join(workspaceDir, '.claude', 'skills');
   fs.mkdirSync(destSkillsDir, { recursive: true });
 
   for (const dir of skillDirs) {
-    fs.cpSync(path.join(skillsSrcDir, dir.name), path.join(destSkillsDir, dir.name), {
+    fs.cpSync(path.join(skillsDir, dir.name), path.join(destSkillsDir, dir.name), {
       recursive: true,
     });
   }
 
-  const claudeMdBlock = fs.readFileSync(path.join(repoRoot, 'claude-md-block.md'), 'utf8');
+  const claudeMdBlock = fs.readFileSync(claudeMdFile, 'utf8');
   fs.writeFileSync(path.join(workspaceDir, 'CLAUDE.md'), claudeMdBlock);
 }
 

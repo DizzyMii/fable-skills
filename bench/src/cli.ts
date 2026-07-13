@@ -19,6 +19,19 @@ import type { BenchResults, Condition, Executor, GradedRun, Scenario } from './t
 // Compiled entrypoint lives at dist/src/cli.js; bench/ is two dirs up. Never cwd.
 const __filename = fileURLToPath(import.meta.url);
 const benchRoot = path.resolve(path.dirname(__filename), '..', '..');
+// repoRoot is bench/'s parent: where this repo's own skills/ and
+// claude-md-block.md live. --skills-dir/--claude-md/--scenarios-dir let a
+// run point at a different pack entirely.
+const repoRoot = path.dirname(benchRoot);
+const defaultSkillsDir = path.join(repoRoot, 'skills');
+const defaultClaudeMdFile = path.join(repoRoot, 'claude-md-block.md');
+const defaultScenariosDir = path.join(benchRoot, 'scenarios');
+
+/** Resolves a CLI path flag against benchRoot (never cwd); falls back to defaultPath when unset. */
+function resolvePathFlag(value: string | undefined, defaultPath: string): string {
+  if (value === undefined) return defaultPath;
+  return path.isAbsolute(value) ? value : path.resolve(benchRoot, value);
+}
 
 function readCliVersion(): string {
   const pkg = JSON.parse(readFileSync(path.join(benchRoot, 'package.json'), 'utf8')) as {
@@ -52,10 +65,11 @@ function usage(): string {
     'Usage: fable-bench <command> [options]',
     '',
     'Commands:',
-    '  run [--scenarios <substr>] [--condition both|baseline|treatment] [--k <n>]',
+    '  run [--scenarios <substr>] [--condition baseline|treatment|inline|both|all] [--k <n>]',
     '      [--model <id>] [--judge-model <id>] [--mock] [--out <dir>]',
+    '      [--skills-dir <dir>] [--claude-md <file>] [--scenarios-dir <dir>]',
     '  report <results.json> [--out <file>]',
-    '  validate',
+    '  validate [--scenarios-dir <dir>]',
     '',
   ].join('\n');
 }
@@ -69,9 +83,16 @@ function printValidationErrors(problems: { file: string; errors: string[] }[]): 
   }
 }
 
-async function cmdValidate(): Promise<number> {
+async function cmdValidate(argv: string[]): Promise<number> {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      'scenarios-dir': { type: 'string' },
+    },
+  });
+
   warnIfContaminated();
-  const scenariosDir = path.join(benchRoot, 'scenarios');
+  const scenariosDir = resolvePathFlag(values['scenarios-dir'] as string | undefined, defaultScenariosDir);
   const problems = validateScenarios(scenariosDir, benchRoot);
   if (problems.length === 0) {
     console.log('all scenarios valid');
@@ -92,19 +113,28 @@ async function cmdRun(argv: string[]): Promise<number> {
       'judge-model': { type: 'string' },
       mock: { type: 'boolean', default: false },
       out: { type: 'string' },
+      'skills-dir': { type: 'string' },
+      'claude-md': { type: 'string' },
+      'scenarios-dir': { type: 'string' },
     },
   });
 
   const startedAt = new Date().toISOString();
 
   const conditionFlag = values.condition as string;
-  if (conditionFlag !== 'both' && conditionFlag !== 'baseline' && conditionFlag !== 'treatment') {
-    console.error(`--condition must be one of both|baseline|treatment, got "${conditionFlag}"`);
+  const validConditionFlags = ['both', 'all', 'baseline', 'treatment', 'inline'];
+  if (!validConditionFlags.includes(conditionFlag)) {
+    console.error(`--condition must be one of baseline|treatment|inline|both|all, got "${conditionFlag}"`);
     return 2;
   }
-  const conditions: Condition[] = conditionFlag === 'both' ? ['baseline', 'treatment'] : [conditionFlag];
+  const conditions: Condition[] =
+    conditionFlag === 'both'
+      ? ['baseline', 'treatment']
+      : conditionFlag === 'all'
+        ? ['baseline', 'treatment', 'inline']
+        : [conditionFlag as Condition];
 
-  const scenariosDir = path.join(benchRoot, 'scenarios');
+  const scenariosDir = resolvePathFlag(values['scenarios-dir'] as string | undefined, defaultScenariosDir);
   const problems = validateScenarios(scenariosDir, benchRoot);
   if (problems.length > 0) {
     printValidationErrors(problems);
@@ -130,6 +160,8 @@ async function cmdRun(argv: string[]): Promise<number> {
   const kOverride = values.k !== undefined ? Number(values.k) : undefined;
   const modelOverride = values.model as string | undefined;
   const judgeModelOverride = values['judge-model'] as string | undefined;
+  const skillsDir = resolvePathFlag(values['skills-dir'] as string | undefined, defaultSkillsDir);
+  const claudeMdFile = resolvePathFlag(values['claude-md'] as string | undefined, defaultClaudeMdFile);
 
   const graded: GradedRun[] = [];
 
@@ -144,6 +176,8 @@ async function cmdRun(argv: string[]): Promise<number> {
         outDir,
         benchRoot,
         mock,
+        skillsDir,
+        claudeMdFile,
       });
 
       for (const record of records) {
@@ -217,7 +251,7 @@ async function main(): Promise<void> {
       exitCode = await cmdReport(rest);
       break;
     case 'validate':
-      exitCode = await cmdValidate();
+      exitCode = await cmdValidate(rest);
       break;
     default:
       process.stderr.write(usage());

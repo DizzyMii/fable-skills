@@ -125,14 +125,24 @@ function collapseWhitespace(s: string): string {
   return s.replace(/\s+/g, ' ');
 }
 
+/** Strips markdown emphasis characters (backticks, asterisks, underscores), then collapses whitespace. */
+function stripFormatting(s: string): string {
+  return collapseWhitespace(s.replace(/[`*_]/g, ''));
+}
+
 /**
- * A quote verifies if it's a substring of the transcript, either exactly or after
- * collapsing every whitespace run to a single space in both strings. An empty quote
- * (the PASS case) is trivially a substring of anything, so this covers PASS too.
+ * A quote verifies against the transcript through three tiers, tried in order: (1) exact
+ * substring; (2) substring after collapsing every whitespace run to a single space in both
+ * strings; (3) substring after also stripping markdown emphasis characters (backticks,
+ * asterisks, underscores) from both strings and collapsing whitespace — judges sometimes
+ * copy an otherwise verbatim rationalization but drop the surrounding markdown formatting.
+ * True if any tier matches. An empty quote (the PASS case) is trivially a substring of
+ * anything, so this covers PASS too.
  */
 function isQuoteVerified(quote: string, transcriptText: string): boolean {
   if (transcriptText.includes(quote)) return true;
-  return collapseWhitespace(transcriptText).includes(collapseWhitespace(quote));
+  if (collapseWhitespace(transcriptText).includes(collapseWhitespace(quote))) return true;
+  return stripFormatting(transcriptText).includes(stripFormatting(quote));
 }
 
 function sumCosts(costs: Array<number | null>): number | null {

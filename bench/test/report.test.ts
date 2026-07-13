@@ -189,6 +189,45 @@ test('aggregate: scenario with only baseline runs leaves treatment undefined', (
   assert.equal(results.scenarios[0].treatment, undefined);
 });
 
+test('aggregate: fills ScenarioResults.inline from inline-condition runs', () => {
+  const scenario = makeScenario({ id: 's-inline' });
+  const graded: GradedRun[] = [
+    makeGradedRun({ record: { scenarioId: 's-inline', condition: 'inline', iteration: 0 }, pass: true }),
+    makeGradedRun({ record: { scenarioId: 's-inline', condition: 'inline', iteration: 1 }, pass: false }),
+  ];
+  const results = aggregate(graded, [scenario], {
+    startedAt: '2026-07-13T00:00:00.000Z',
+    cliVersion: '0.1.0',
+    mock: true,
+  });
+  const inline = results.scenarios[0].inline;
+  assert.ok(inline);
+  assert.equal(inline!.runs.length, 2);
+  assert.equal(inline!.passRate, 0.5);
+  assert.equal(inline!.passAtK, true);
+  assert.equal(inline!.passHatK, false);
+  // baseline/treatment stay undefined when no runs of those conditions exist.
+  assert.equal(results.scenarios[0].baseline, undefined);
+  assert.equal(results.scenarios[0].treatment, undefined);
+});
+
+test('aggregate: totalCostUsd includes inline-condition cost', () => {
+  const scenario = makeScenario({ id: 's-inline-cost' });
+  const graded: GradedRun[] = [
+    makeGradedRun({
+      record: { scenarioId: 's-inline-cost', condition: 'inline', iteration: 0, costUsd: 0.04 },
+      pass: true,
+    }),
+  ];
+  const results = aggregate(graded, [scenario], {
+    startedAt: '2026-07-13T00:00:00.000Z',
+    cliVersion: '0.1.0',
+    mock: true,
+  });
+  assert.ok(Math.abs(results.scenarios[0].inline!.costUsd - 0.04) < 1e-9);
+  assert.ok(Math.abs(results.totalCostUsd - 0.04) < 1e-9);
+});
+
 test('aggregate: scenario.skill on ScenarioResults comes from the matching Scenario', () => {
   const scenario = makeScenario({ id: 's-skill', skill: 'fable-scope-discipline' });
   const results = aggregate([], [scenario], {
@@ -392,6 +431,87 @@ test('renderReport: table has exactly one row per scenario', () => {
   const report = renderReport(results);
   const rows = report.split('\n').filter((l) => /^\| s-\d /.test(l));
   assert.equal(rows.length, 3);
+});
+
+// --- inline condition ---
+
+function buildInlineResults(): BenchResults {
+  const scenario = makeScenario({ id: 's-inline-report', skill: 'fable-scope-discipline' });
+  const graded: GradedRun[] = [
+    makeGradedRun({ record: { scenarioId: 's-inline-report', condition: 'baseline', iteration: 0 }, pass: false }),
+    makeGradedRun({ record: { scenarioId: 's-inline-report', condition: 'treatment', iteration: 0 }, pass: true }),
+    makeGradedRun({ record: { scenarioId: 's-inline-report', condition: 'inline', iteration: 0 }, pass: true }),
+  ];
+  return aggregate(graded, [scenario], {
+    startedAt: '2026-07-13T00:00:00.000Z',
+    cliVersion: '0.1.0',
+    mock: true,
+  });
+}
+
+test('renderReport: summary table gains an inline pass column and three-part pass@k/pass^k cells when inline data exists', () => {
+  const results = buildInlineResults();
+  const report = renderReport(results);
+  const lines = report.split('\n');
+
+  const header = lines.find((l) => l.startsWith('| scenario |'));
+  assert.ok(header, 'expected a summary header row');
+  assert.match(header!, /inline pass/);
+  assert.match(header!, /pass@k \(B→T→I\)/);
+  assert.match(header!, /pass\^k \(B→T→I\)/);
+
+  const row = lines.find((l) => l.startsWith('| s-inline-report '));
+  assert.ok(row, 'expected summary row for s-inline-report');
+  // scenario | skill | baseline pass | treatment pass | inline pass | pass@k | pass^k | flip
+  const cells = row!
+    .split('|')
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  assert.equal(cells.length, 8);
+  assert.match(cells[5], /^no → yes → yes$/); // pass@k (B→T→I)
+  assert.match(cells[6], /^no → yes → yes$/); // pass^k (B→T→I)
+});
+
+test('renderReport: summary table stays two-part when no scenario has inline data', () => {
+  const scenario = makeScenario({ id: 's-no-inline' });
+  const graded: GradedRun[] = [
+    makeGradedRun({ record: { scenarioId: 's-no-inline', condition: 'baseline', iteration: 0 }, pass: true }),
+    makeGradedRun({ record: { scenarioId: 's-no-inline', condition: 'treatment', iteration: 0 }, pass: true }),
+  ];
+  const results = aggregate(graded, [scenario], {
+    startedAt: '2026-07-13T00:00:00.000Z',
+    cliVersion: '0.1.0',
+    mock: true,
+  });
+  const report = renderReport(results);
+  const lines = report.split('\n');
+
+  const header = lines.find((l) => l.startsWith('| scenario |'));
+  assert.equal(
+    header,
+    '| scenario | skill | baseline pass | treatment pass | pass@k (B→T) | pass^k (B→T) | flip |'
+  );
+  assert.doesNotMatch(header!, /inline pass/);
+
+  const row = lines.find((l) => l.startsWith('| s-no-inline '));
+  assert.ok(row);
+  const cells = row!
+    .split('|')
+    .map((c) => c.trim())
+    .filter((c) => c.length > 0);
+  assert.equal(cells.length, 7);
+});
+
+test('renderReport: per-scenario section renders an inline block after treatment when inline data is present', () => {
+  const results = buildInlineResults();
+  const report = renderReport(results);
+
+  const treatmentIdx = report.indexOf('**treatment**');
+  const inlineIdx = report.indexOf('**inline**');
+  assert.ok(treatmentIdx !== -1, 'expected a treatment block');
+  assert.ok(inlineIdx !== -1, 'expected an inline block');
+  assert.ok(inlineIdx > treatmentIdx, 'inline block must come after treatment');
+  assert.match(report, /- inline #0: PASS/);
 });
 
 // --- round-trip ---

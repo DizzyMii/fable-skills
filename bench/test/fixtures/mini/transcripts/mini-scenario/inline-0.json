@@ -1,0 +1,26 @@
+{
+  "finalText": "Reply from inline recording 0.",
+  "events": [
+    { "type": "system", "subtype": "init" },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [{ "type": "text", "text": "Reply from inline recording 0." }]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "Reply from inline recording 0.",
+      "total_cost_usd": 0.01,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0.01,
+  "durationMs": 1111,
+  "diff": "",
+  "diffStat": { "filesChanged": 0, "insertions": 0, "deletions": 0, "files": [] },
+  "workspaceFiles": { "hello.txt": "hello world\n" }
+}

@@ -5,13 +5,18 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { MockExecutor } from '../src/executor.js';
 import { extractAssistantText, runScenario } from '../src/runner.js';
-import type { Scenario } from '../src/types.js';
+import type { Executor, Scenario } from '../src/types.js';
 
 // Resolved from process.cwd() (always bench/ for both the mandated
 // verification build and `npm test`), not import.meta.url — see the
 // comment in workspace.test.ts for why.
 const benchRoot = process.cwd();
 const transcriptsDir = path.join(benchRoot, 'test', 'fixtures', 'mini', 'transcripts');
+// repo root (contains skills/, claude-md-block.md) is bench/'s parent dir.
+// Unused by the mock branch, but RunnerOpts requires them.
+const repoRoot = path.resolve(benchRoot, '..');
+const skillsDir = path.join(repoRoot, 'skills');
+const claudeMdFile = path.join(repoRoot, 'claude-md-block.md');
 
 const scenario: Scenario = {
   id: 'mini-scenario',
@@ -43,6 +48,8 @@ test('runScenario (mock) returns RunRecord[] with correct shape', async () => {
       outDir,
       benchRoot,
       mock: true,
+      skillsDir,
+      claudeMdFile,
     });
 
     assert.equal(records.length, 2);
@@ -82,6 +89,8 @@ test('runScenario (mock) cycles recordings modulo the number available', async (
       outDir,
       benchRoot,
       mock: true,
+      skillsDir,
+      claudeMdFile,
     });
 
     assert.equal(records.length, 3);
@@ -104,6 +113,8 @@ test('runScenario (mock) writes one transcript JSONL file per iteration', async 
       outDir,
       benchRoot,
       mock: true,
+      skillsDir,
+      claudeMdFile,
     });
 
     for (const [i, record] of records.entries()) {
@@ -134,6 +145,8 @@ test('runScenario (mock) defaults iterations and model from the scenario when op
       outDir,
       benchRoot,
       mock: true,
+      skillsDir,
+      claudeMdFile,
     });
 
     // scenario.k === 3
@@ -143,6 +156,131 @@ test('runScenario (mock) defaults iterations and model from the scenario when op
     }
   } finally {
     fs.rmSync(outDir, { recursive: true, force: true });
+  }
+});
+
+test('runScenario (mock) inline condition replays inline recordings, tagged with condition "inline"', async () => {
+  const outDir = mkOutDir();
+  try {
+    const executor = new MockExecutor(transcriptsDir);
+    const records = await runScenario(scenario, 'inline', {
+      executor,
+      k: 1,
+      outDir,
+      benchRoot,
+      mock: true,
+      skillsDir,
+      claudeMdFile,
+    });
+
+    assert.equal(records.length, 1);
+    assert.equal(records[0].condition, 'inline');
+    assert.equal(records[0].finalText, 'Reply from inline recording 0.');
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
+});
+
+test('runScenario (live-shaped) inline condition prepends the SKILL.md body to the prompt and installs nothing', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fable-bench-inline-live-'));
+  const outDir = mkOutDir();
+  try {
+    // A fake bench root with just enough shape for provisionWorkspace: a
+    // fixtures/repos/<fixture> dir. Kept separate from the real bench/fixtures
+    // (packet F's territory).
+    const fakeBenchRoot = path.join(tmpRoot, 'bench');
+    const fixtureRepoDir = path.join(fakeBenchRoot, 'fixtures', 'repos', scenario.fixture);
+    fs.mkdirSync(fixtureRepoDir, { recursive: true });
+    fs.writeFileSync(path.join(fixtureRepoDir, 'hello.txt'), 'hello world\n');
+
+    // A temp skillsDir with a SKILL.md for the scenario's skill.
+    const tmpSkillsDir = path.join(tmpRoot, 'skills');
+    const skillDir = path.join(tmpSkillsDir, scenario.skill);
+    fs.mkdirSync(skillDir, { recursive: true });
+    const skillBody = '# fable-scope-discipline\n\nStay in scope. Do not gold-plate.\n';
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), skillBody);
+
+    const tmpClaudeMdFile = path.join(tmpRoot, 'claude-md-block.md');
+    fs.writeFileSync(tmpClaudeMdFile, 'unused by inline\n');
+
+    let capturedPrompt: string | undefined;
+    let sawInstalledSkillsDir: boolean | undefined;
+    let sawInstalledClaudeMd: boolean | undefined;
+    const stubExecutor: Executor = {
+      async execute(req) {
+        capturedPrompt = req.prompt;
+        // The workspace still exists at this point (cleanup happens after
+        // the executor resolves), so this is the only chance to assert
+        // nothing was installed.
+        sawInstalledSkillsDir = fs.existsSync(path.join(req.cwd, '.claude', 'skills'));
+        sawInstalledClaudeMd = fs.existsSync(path.join(req.cwd, 'CLAUDE.md'));
+        return { finalText: 'stub reply', events: [], exitCode: 0, costUsd: 0, durationMs: 1 };
+      },
+    };
+
+    const records = await runScenario(scenario, 'inline', {
+      executor: stubExecutor,
+      k: 1,
+      outDir,
+      benchRoot: fakeBenchRoot,
+      mock: false,
+      skillsDir: tmpSkillsDir,
+      claudeMdFile: tmpClaudeMdFile,
+    });
+
+    assert.equal(records.length, 1);
+    assert.equal(records[0].condition, 'inline');
+    assert.ok(capturedPrompt, 'executor should have received a prompt');
+    assert.ok(
+      capturedPrompt!.startsWith(skillBody),
+      `prompt should start with the SKILL.md body, got: ${capturedPrompt}`
+    );
+    assert.ok(capturedPrompt!.includes(scenario.prompt), 'prompt should still include the scenario prompt');
+    assert.equal(sawInstalledSkillsDir, false, 'inline must not install .claude/skills');
+    assert.equal(sawInstalledClaudeMd, false, 'inline must not write CLAUDE.md');
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('runScenario (live-shaped) inline condition throws a config error when the scenario skill has no SKILL.md', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'fable-bench-inline-missing-'));
+  const outDir = mkOutDir();
+  try {
+    const fakeBenchRoot = path.join(tmpRoot, 'bench');
+    const fixtureRepoDir = path.join(fakeBenchRoot, 'fixtures', 'repos', scenario.fixture);
+    fs.mkdirSync(fixtureRepoDir, { recursive: true });
+    fs.writeFileSync(path.join(fixtureRepoDir, 'hello.txt'), 'hello world\n');
+
+    // skillsDir exists but has no dir for scenario.skill at all.
+    const tmpSkillsDir = path.join(tmpRoot, 'skills');
+    fs.mkdirSync(tmpSkillsDir, { recursive: true });
+    const tmpClaudeMdFile = path.join(tmpRoot, 'claude-md-block.md');
+    fs.writeFileSync(tmpClaudeMdFile, 'unused by inline\n');
+
+    const stubExecutor: Executor = {
+      async execute() {
+        throw new Error('executor must not be called when SKILL.md is missing');
+      },
+    };
+
+    await assert.rejects(
+      () =>
+        runScenario(scenario, 'inline', {
+          executor: stubExecutor,
+          k: 1,
+          outDir,
+          benchRoot: fakeBenchRoot,
+          mock: false,
+          skillsDir: tmpSkillsDir,
+          claudeMdFile: tmpClaudeMdFile,
+        }),
+      /SKILL\.md/
+    );
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
 

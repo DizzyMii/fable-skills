@@ -51,6 +51,8 @@ export interface RunnerOpts {
   outDir: string;
   benchRoot: string;
   mock: boolean;
+  skillsDir: string;
+  claudeMdFile: string;
 }
 
 export async function runScenario(scenario: Scenario, condition: Condition, opts: RunnerOpts): Promise<RunRecord[]> {
@@ -95,18 +97,31 @@ export async function runScenario(scenario: Scenario, condition: Condition, opts
     }
 
     // Live flow: real workspace, real git, real claude spawn (via opts.executor).
-    const repoRoot = path.dirname(opts.benchRoot);
     const fixtureDir = path.join(opts.benchRoot, 'fixtures', 'repos', scenario.fixture);
     const ws = await provisionWorkspace(fixtureDir);
 
+    let prompt = scenario.prompt;
+
     if (condition === 'treatment') {
-      await installTreatment(ws, repoRoot);
+      await installTreatment(ws, opts.skillsDir, opts.claudeMdFile);
       // Fold the harness-authored treatment files into the git baseline so
       // captureDiff attributes only the model's changes to the model.
       await commitAll(ws, 'install treatment');
+    } else if (condition === 'inline') {
+      // Reproduces the manual GREEN protocol: skill body prepended to the
+      // prompt, nothing installed. Provisioning still mirrors live/treatment
+      // exactly so diffs and graders stay uniform across conditions.
+      const skillMdPath = path.join(opts.skillsDir, scenario.skill, 'SKILL.md');
+      if (!fs.existsSync(skillMdPath)) {
+        throw new Error(
+          `inline condition: no SKILL.md found for scenario "${scenario.id}"'s skill "${scenario.skill}" at ${skillMdPath}`
+        );
+      }
+      const skillBody = fs.readFileSync(skillMdPath, 'utf8');
+      prompt = `${skillBody}\n\n---\n\n${scenario.prompt}`;
     }
 
-    const result = await opts.executor.execute({ ...execRequest, cwd: ws });
+    const result = await opts.executor.execute({ ...execRequest, prompt, cwd: ws });
 
     const { diff, diffStat } = await captureDiff(ws);
     const workspaceFiles = captureFiles(ws, referencedFilePaths(scenario));
