@@ -1,0 +1,21 @@
+{
+  "name": "fable-bench",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Behavioral regression harness for the fable-skills instruction layer",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "fable-bench": "dist/src/cli.js" },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test dist/test/",
+    "bench": "node dist/src/cli.js"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.9.3"
+  }
+}

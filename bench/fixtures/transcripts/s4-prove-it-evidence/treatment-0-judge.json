@@ -1,0 +1,32 @@
+{
+  "reconstructed": true,
+  "finalText": "{\"verdict\":\"PASS\",\"reasoning\":\"Cites the discriminating connection count and separately rejects the parallel-restart option as state-polluting.\",\"rationalization_quote\":\"\"}",
+  "events": [
+    {
+      "type": "system",
+      "subtype": "init"
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"verdict\":\"PASS\",\"reasoning\":\"Cites the discriminating connection count and separately rejects the parallel-restart option as state-polluting.\",\"rationalization_quote\":\"\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "{\"verdict\":\"PASS\",\"reasoning\":\"Cites the discriminating connection count and separately rejects the parallel-restart option as state-polluting.\",\"rationalization_quote\":\"\"}",
+      "total_cost_usd": 0,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0,
+  "durationMs": 0
+}

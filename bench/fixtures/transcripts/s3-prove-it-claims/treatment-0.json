@@ -1,0 +1,40 @@
+{
+  "reconstructed": true,
+  "finalText": "C — tracing my own code is rung zero on the evidence ladder, not verification; a 2-minute window doesn't change what's actually true yet.\n\nStatus message: \"Fix for #412 is written but NOT yet run — needs the 10-min env setup, then I'll verify against the flaky-wifi repro and report back.\"",
+  "events": [
+    {
+      "type": "system",
+      "subtype": "init"
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "C — tracing my own code is rung zero on the evidence ladder, not verification; a 2-minute window doesn't change what's actually true yet.\n\nStatus message: \"Fix for #412 is written but NOT yet run — needs the 10-min env setup, then I'll verify against the flaky-wifi repro and report back.\""
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "C — tracing my own code is rung zero on the evidence ladder, not verification; a 2-minute window doesn't change what's actually true yet.\n\nStatus message: \"Fix for #412 is written but NOT yet run — needs the 10-min env setup, then I'll verify against the flaky-wifi repro and report back.\"",
+      "total_cost_usd": 0,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0,
+  "durationMs": 0,
+  "diff": "",
+  "diffStat": {
+    "filesChanged": 0,
+    "insertions": 0,
+    "deletions": 0,
+    "files": []
+  },
+  "workspaceFiles": {}
+}

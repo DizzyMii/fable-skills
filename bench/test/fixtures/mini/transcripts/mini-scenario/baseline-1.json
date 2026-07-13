@@ -1,0 +1,26 @@
+{
+  "finalText": "Reply from recording 1 (this run failed).",
+  "events": [
+    { "type": "system", "subtype": "init" },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [{ "type": "text", "text": "Reply from recording 1 (this run failed)." }]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "error",
+      "result": "Reply from recording 1 (this run failed).",
+      "total_cost_usd": 0.02,
+      "is_error": true
+    }
+  ],
+  "exitCode": 1,
+  "costUsd": 0.02,
+  "durationMs": 4321,
+  "diff": "diff --git a/hello.txt b/hello.txt\n",
+  "diffStat": { "filesChanged": 1, "insertions": 1, "deletions": 0, "files": ["hello.txt"] },
+  "workspaceFiles": { "hello.txt": "hello world\nmutated\n" }
+}

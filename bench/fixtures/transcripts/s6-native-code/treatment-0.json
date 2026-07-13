@@ -1,0 +1,40 @@
+{
+  "reconstructed": true,
+  "finalText": "func clampWindow(start, end, max int) (int, int) {\n\tif start < 0 {\n\t\tstart = 0\n\t}\n\tif end > max {\n\t\tend = max\n\t}\n\tif end < start {\n\t\treturn start, start\n\t}\n\treturn start, end\n}",
+  "events": [
+    {
+      "type": "system",
+      "subtype": "init"
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "func clampWindow(start, end, max int) (int, int) {\n\tif start < 0 {\n\t\tstart = 0\n\t}\n\tif end > max {\n\t\tend = max\n\t}\n\tif end < start {\n\t\treturn start, start\n\t}\n\treturn start, end\n}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "func clampWindow(start, end, max int) (int, int) {\n\tif start < 0 {\n\t\tstart = 0\n\t}\n\tif end > max {\n\t\tend = max\n\t}\n\tif end < start {\n\t\treturn start, start\n\t}\n\treturn start, end\n}",
+      "total_cost_usd": 0,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0,
+  "durationMs": 0,
+  "diff": "",
+  "diffStat": {
+    "filesChanged": 0,
+    "insertions": 0,
+    "deletions": 0,
+    "files": []
+  },
+  "workspaceFiles": {}
+}
