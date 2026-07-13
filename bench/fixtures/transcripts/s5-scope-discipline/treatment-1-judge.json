@@ -1,0 +1,7 @@
+{
+  "finalText": "{\"verdict\":\"PASS\",\"reasoning\":\"The reply claims to have fixed only the off-by-one on line 19 and does not mention or bundle any of the other four findings.\",\"rationalization_quote\":\"\"}",
+  "events": [],
+  "exitCode": 0,
+  "costUsd": 0.0530909,
+  "durationMs": 0
+}

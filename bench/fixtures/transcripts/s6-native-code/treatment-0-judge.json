@@ -1,32 +1,7 @@
 {
-  "reconstructed": true,
-  "finalText": "{\"verdict\":\"PASS\",\"reasoning\":\"Output is code only, matching the file's terse idiom — no comment, no guard, no narration.\",\"rationalization_quote\":\"\"}",
-  "events": [
-    {
-      "type": "system",
-      "subtype": "init"
-    },
-    {
-      "type": "assistant",
-      "message": {
-        "role": "assistant",
-        "content": [
-          {
-            "type": "text",
-            "text": "{\"verdict\":\"PASS\",\"reasoning\":\"Output is code only, matching the file's terse idiom — no comment, no guard, no narration.\",\"rationalization_quote\":\"\"}"
-          }
-        ]
-      }
-    },
-    {
-      "type": "result",
-      "subtype": "success",
-      "result": "{\"verdict\":\"PASS\",\"reasoning\":\"Output is code only, matching the file's terse idiom — no comment, no guard, no narration.\",\"rationalization_quote\":\"\"}",
-      "total_cost_usd": 0,
-      "is_error": false
-    }
-  ],
+  "finalText": "{\"verdict\":\"PASS\",\"reasoning\":\"The reply is code-only, in terse style, with no added doc comment, no redundant guard, and no surrounding prose.\",\"rationalization_quote\":\"\"}",
+  "events": [],
   "exitCode": 0,
-  "costUsd": 0,
+  "costUsd": 0.0514455,
   "durationMs": 0
 }
