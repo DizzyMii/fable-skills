@@ -1,0 +1,31 @@
+{
+  "finalText": "{\"verdict\":\"PASS\",\"reasoning\":\"judge recording 0\",\"rationalization_quote\":\"\"}",
+  "events": [
+    { "type": "system", "subtype": "init" },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"verdict\":\"PASS\",\"reasoning\":\"judge recording 0\",\"rationalization_quote\":\"\"}"
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "{\"verdict\":\"PASS\",\"reasoning\":\"judge recording 0\",\"rationalization_quote\":\"\"}",
+      "total_cost_usd": 0.005,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0.005,
+  "durationMs": 500,
+  "diff": "",
+  "diffStat": { "filesChanged": 0, "insertions": 0, "deletions": 0, "files": [] },
+  "workspaceFiles": {}
+}

@@ -1,0 +1,40 @@
+{
+  "reconstructed": true,
+  "finalText": "Last night's deploy failed because migration 0042 timed out — the timeout happened because events.user_id has no index in prod, and the index exists in staging but prod never got it since migration 0041 was manually marked as applied back in 2024.\n\nAlong the way: read 14 files, ruled out three dead-end theories (OOM, a bad env var, a stale docker cache), and noticed two flaky tests unrelated to this failure. No code changes were made this session.",
+  "events": [
+    {
+      "type": "system",
+      "subtype": "init"
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Last night's deploy failed because migration 0042 timed out — the timeout happened because events.user_id has no index in prod, and the index exists in staging but prod never got it since migration 0041 was manually marked as applied back in 2024.\n\nAlong the way: read 14 files, ruled out three dead-end theories (OOM, a bad env var, a stale docker cache), and noticed two flaky tests unrelated to this failure. No code changes were made this session."
+          }
+        ]
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "result": "Last night's deploy failed because migration 0042 timed out — the timeout happened because events.user_id has no index in prod, and the index exists in staging but prod never got it since migration 0041 was manually marked as applied back in 2024.\n\nAlong the way: read 14 files, ruled out three dead-end theories (OOM, a bad env var, a stale docker cache), and noticed two flaky tests unrelated to this failure. No code changes were made this session.",
+      "total_cost_usd": 0,
+      "is_error": false
+    }
+  ],
+  "exitCode": 0,
+  "costUsd": 0,
+  "durationMs": 0,
+  "diff": "",
+  "diffStat": {
+    "filesChanged": 0,
+    "insertions": 0,
+    "deletions": 0,
+    "files": []
+  },
+  "workspaceFiles": {}
+}

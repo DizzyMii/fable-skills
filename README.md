@@ -104,6 +104,26 @@ The product's whole pitch is verifiable claims, so the test record ships with it
 - [`verify-results.md`](docs/superpowers/testing/verify-results.md): the GREEN phase, holding the flips plus the two-iteration refactor that produced the "example beats rules" lesson.
 - [the design spec](docs/superpowers/specs/2026-06-10-fable-skills-design.md): what each skill encodes and why.
 
+## The eval harness (fable-bench)
+
+The RED/GREEN loop in `CONTRIBUTING.md` — pressure scenario, baseline
+failure, treatment flip, verbatim rationalization — is manual today. `bench/`
+automates it: baseline vs. treatment, k runs per condition, deterministic
+tier-1 checks (diff size, file contents, reply shape) plus a judge model that
+grades the rest and captures any rationalization verbatim, substring-verified
+against the transcript.
+
+```bash
+cd bench && npm install && npm test   # whole suite, mock mode, zero API spend
+node dist/src/cli.js run --scenarios s5 --k 3   # one live run against real Claude Code
+```
+
+CI (`bench-ci.yml`) runs the mock suite on every push; a live run
+(`bench.yml`) is `workflow_dispatch`-only since it spends real API budget.
+See [`bench/SPEC.md`](bench/SPEC.md) for the harness design and
+[`docs/bench-authoring.md`](docs/bench-authoring.md) for how to write a
+scenario.
+
 ## FAQ
 
 **Does this make Opus 4.8 as capable as Fable 5?** No, and the repo never claims it. Skills transfer judgment and discipline, not reasoning depth. Capability won't move; communication, calibration, and scope behavior will.
@@ -120,7 +140,7 @@ The product's whole pitch is verifiable claims, so the test record ships with it
 
 ## Roadmap
 
-- [ ] **Eval harness** for measured daily-use gains (the benchmark the FAQ admits is missing).
+- [x] **Eval harness** for measured daily-use gains — v0 shipped in [`bench/`](bench/): scenario-level regression runs with baseline/treatment flips reproduced live. The measured *daily-use* benchmark it exists to enable is still ahead.
 - [ ] **macOS/Linux smoke-test in CI:** `install.sh` is verified via POSIX `sh`, but a real-runner pass is welcome.
 - [ ] **Port the activation block** to other harnesses (Copilot CLI, Gemini CLI, Codex).
 - [ ] **More pressure scenarios**, especially community-contributed failures the current six don't catch.

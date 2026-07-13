@@ -1,0 +1,71 @@
+name: fable-bench (live)
+
+# Manual, cost-gated live run. Spawns real `claude` calls against
+# ANTHROPIC_API_KEY, so it never runs on push/PR — dispatch it by hand.
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Target model ID (overrides scenario frontmatter)"
+        type: string
+        default: "claude-opus-4-8"
+      scenarios:
+        description: "Substring filter on scenario id (empty = all scenarios)"
+        type: string
+        default: ""
+      k:
+        description: "Iterations per condition"
+        type: string
+        default: "3"
+      condition:
+        description: "Which condition(s) to run"
+        type: choice
+        options:
+          - both
+          - baseline
+          - treatment
+        default: both
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: bench/package-lock.json
+
+      - name: Install bench dependencies
+        working-directory: bench
+        run: npm ci
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Build
+        working-directory: bench
+        run: npm run build
+
+      - name: Run bench
+        working-directory: bench
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          args=(run --condition "${{ inputs.condition }}" --k "${{ inputs.k }}" --model "${{ inputs.model }}")
+          if [ -n "${{ inputs.scenarios }}" ]; then
+            args+=(--scenarios "${{ inputs.scenarios }}")
+          fi
+          node dist/src/cli.js "${args[@]}"
+
+      # `run` exits non-zero when any treatment run fails (SPEC D16) — that's a
+      # real regression signal, not a workflow bug. The report must still land
+      # so the failure is inspectable, hence if: always() here.
+      - name: Upload bench report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-report
+          path: bench/results/

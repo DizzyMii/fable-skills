@@ -1,0 +1,35 @@
+# Mock-mode CI: runs the harness's own node:test suite (`npm test` = tsc +
+# node --test dist/test/). No ANTHROPIC_API_KEY is set, no `claude` process is
+# spawned, and no live scenario runs happen — this workflow spends zero API
+# money and is safe to run on every push and PR.
+name: fable-bench (CI)
+
+on:
+  push:
+    paths:
+      - "bench/**"
+      - ".github/workflows/bench-ci.yml"
+  pull_request:
+    paths:
+      - "bench/**"
+      - ".github/workflows/bench-ci.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: bench/package-lock.json
+
+      - name: Install bench dependencies
+        working-directory: bench
+        run: npm ci
+
+      - name: Test (mock mode, zero API spend)
+        working-directory: bench
+        run: npm test
