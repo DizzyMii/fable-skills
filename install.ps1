@@ -18,12 +18,12 @@ Get-ChildItem $repoSkills -Directory -Filter 'fable-*' | ForEach-Object {
 Write-Output ("Installed {0} skills to {1}:" -f $installed.Count, $target)
 $installed | ForEach-Object { Write-Output ("  - " + $_) }
 
-$block = Get-Content $blockFile -Raw
+$block = Get-Content $blockFile -Raw -Encoding UTF8
 if ($WriteClaudeMd) {
     $start = '<!-- fable-skills:start -->'
     $end = '<!-- fable-skills:end -->'
     if (Test-Path $claudeMd) {
-        $content = Get-Content $claudeMd -Raw
+        $content = Get-Content $claudeMd -Raw -Encoding UTF8
         $pattern = [regex]::Escape($start) + '[\s\S]*?' + [regex]::Escape($end)
         if ($content -match $pattern) {
             $content = [regex]::Replace($content, $pattern, $block.TrimEnd())
