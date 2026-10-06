@@ -1,3 +1,5 @@
+<img src=".github/banner.svg" width="100%" alt="fable-skills" />
+
 <div align="center">
 
 # fable-skills
